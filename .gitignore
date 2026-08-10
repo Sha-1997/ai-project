@@ -39,13 +39,13 @@ Thumbs.db
 *.swp
 
 #Exclude other app modules for now
-apps/
+apps/*
 packages/
 infrastructure/
 prompts/
 scratch/
 scripts/
 docs/
-
+!apps/web/
 # Ignore landing page (as it is pushed separately)
 landing-page/
