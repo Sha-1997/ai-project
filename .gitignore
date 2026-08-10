@@ -1,0 +1,51 @@
+# Dependency Directories
+node_modules/
+**/node_modules/
+
+# Compiled Outputs
+dist/
+**/dist/
+.next/
+**/.next/
+out/
+build/
+
+# Local Environment Configs
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+.env copy
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# IDE Files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+#Exclude other app modules for now
+apps/
+packages/
+infrastructure/
+prompts/
+scratch/
+scripts/
+docs/
+
+# Ignore landing page (as it is pushed separately)
+landing-page/

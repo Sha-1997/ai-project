@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./",
+    "paths": {
+      "@jovianex/ui": ["packages/ui/src/index.ts"],
+      "@jovianex/auth": ["packages/auth/src/index.ts"],
+      "@jovianex/database": ["packages/database/src/index.ts"],
+      "@jovianex/config": ["packages/config/src/index.ts"],
+      "@jovianex/shared": ["packages/shared/src/index.ts"],
+      "@jovianex/types": ["packages/types/src/index.ts"],
+      "@jovianex/utils": ["packages/utils/src/index.ts"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/node_modules/*",
+    "**/dist/*"
+  ]
+}
