@@ -1,0 +1,16 @@
+{
+  "name": "@jovianex/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/membership.service.js",
+  "types": "dist/membership.service.d.ts",
+  "scripts": {
+    "build": "echo 'Bypass build'"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

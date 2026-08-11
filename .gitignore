@@ -40,12 +40,6 @@ Thumbs.db
 
 #Exclude other app modules for now
 apps/*
-packages/
-infrastructure/
-prompts/
-scratch/
-scripts/
-docs/
 !apps/api/
 # Ignore landing page (as it is pushed separately)
 landing-page/
