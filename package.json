@@ -29,6 +29,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.28",
+    "@prisma/client": "^5.22.0",
     "@react-oauth/google": "^0.13.5",
     "google-auth-library": "^10.9.1",
     "jose": "^6.2.4",

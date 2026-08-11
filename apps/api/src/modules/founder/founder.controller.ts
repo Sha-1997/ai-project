@@ -3,7 +3,7 @@ import { FounderService } from './founder.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Request } from 'express';
-import { Public } from 'src/common/decorators/public.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('founder')
 @UseGuards(JwtAuthGuard)
@@ -60,3 +60,5 @@ export class FounderController {
     return this.founderService.getFounderSeatStats();
   }
 }
+
+

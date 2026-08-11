@@ -20,7 +20,7 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@jovianex/cache": "*",
+    "@jovianex/cache": "file:../../packages/cache",
     "@nestjs/common": "^10.3.8",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^10.3.8",
