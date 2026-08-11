@@ -1,0 +1,102 @@
+openapi: 3.0.3
+info:
+  title: JovianeX AI Ecosystem Launch Platform API
+  description: REST API contracts defining identity, membership, campaigns, referrals, and admin endpoints.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local development backend gateway
+paths:
+  /health:
+    get:
+      summary: Service health check
+      responses:
+        '200':
+          description: Health details check
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      uptime:
+                        type: number
+
+  /health/readiness:
+    get:
+      summary: Connection readiness checks
+      responses:
+        '200':
+          description: Connections statuses check
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /identity/register:
+    post:
+      summary: User credentials registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Account created successfully
+
+  /identity/login:
+    post:
+      summary: User session authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Logged in successfully
+
+  /membership/plans:
+    get:
+      summary: Fetch membership subscription price tiers
+      responses:
+        '200':
+          description: Price tier lists loaded successfully
+
+  /referral/stats/{userId}:
+    get:
+      summary: Fetch referral milestone achievements
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Counts and milestone metadata checked successfully

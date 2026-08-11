@@ -1,0 +1,1 @@
+export const APPLE_PROVIDER = 'APPLE_PROVIDER';

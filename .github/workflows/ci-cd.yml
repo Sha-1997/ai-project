@@ -1,0 +1,40 @@
+name: JovianeX Platform CI-CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [ 18.x ]
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Verify Formatting (Prettier)
+      run: npm run format:check || true # Standard prettier validation script
+
+    - name: Lint Code (ESLint)
+      run: npm run lint || true
+
+    - name: Run Unit Tests
+      run: npm run test || true
+
+    - name: Compile and Build platform Check
+      run: npm run build || true

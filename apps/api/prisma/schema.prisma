@@ -1,0 +1,1033 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String                  @id @default(uuid())
+  founderId              String?                 @unique
+  email                  String?                 @unique
+  passwordHash           String?
+  status                 String                  @default("PENDING_VERIFICATION")
+  lockoutUntil           DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  activities             ActivityFeed[]
+  auditLogs              AuditLog[]
+  campaignAudits         CampaignAudit[]
+  campaignParticipants   CampaignParticipant[]
+  candidate              Candidate?
+  customer               Customer?
+  employer               Employer?
+  founderProfile         FounderProfile?
+  founderWorkspace       FounderWorkspace?
+  giveawayEligibilities  GiveawayEligibility[]
+  invoices               Invoice[]
+  loginAttempts          LoginAttempt[]
+  eligibilities          MembershipEligibility[]
+  membershipHistory      MembershipHistory[]
+  membershipSubscription MembershipSubscription?
+  namingChallengeEntries NamingChallengeEntry[]
+  orders                 Order[]
+  passwordHistories      PasswordHistory[]
+  profileCompletion      ProfileCompletion?
+  profile                Profile?
+  referralsRecv          Referral[]              @relation("RefereeRelation")
+  referralsSent          Referral[]              @relation("ReferrerRelation")
+  refreshTokens          RefreshToken[]
+  userPreference         UserPreference?
+  sessions               UserSession[]
+  roles                  UserRole[]
+  UserIdentity           UserIdentity[]
+
+  @@map("users")
+}
+
+model Profile {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  fullName          String?
+  phoneNumber       String?
+  country           String?
+  marketingConsent  Boolean   @default(false)
+  referralCode      String?
+  profilePhoto      String?
+  dob               DateTime?
+  city              String?
+  preferredLanguage String?
+  resumeUrl         String?
+  skills            String[]
+  careerPreferences String[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model MembershipPlan {
+  id            String                   @id @default(uuid())
+  code          String                   @unique
+  name          String
+  price         Float
+  currency      String                   @default("AED")
+  durationYears Int
+  maxSeats      Int?
+  seatsTaken    Int                      @default(0)
+  activeFrom    DateTime?
+  activeTo      DateTime?
+  isActive      Boolean                  @default(true)
+  description   String?
+  benefits      String[]
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  subscriptions MembershipSubscription[]
+
+  @@map("membership_plans")
+}
+
+model MembershipSubscription {
+  id             String              @id @default(uuid())
+  userId         String              @unique
+  planId         String
+  status         String              @default("DRAFT")
+  amount         Float
+  currency       String              @default("AED")
+  reservedUntil  DateTime?
+  expiresAt      DateTime?
+  founderNumber  String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  historyRecords MembershipHistory[]
+  plan           MembershipPlan      @relation(fields: [planId], references: [id])
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("membership_subscriptions")
+}
+
+model FounderProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  founderNumber String   @unique
+  joinDate      DateTime @default(now())
+  tier          String   @default("FOUNDER")
+  badgeStatus   String   @default("ACTIVE")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("founder_profiles")
+}
+
+model MembershipHistory {
+  id             String                 @id @default(uuid())
+  userId         String
+  subscriptionId String
+  oldStatus      String
+  newStatus      String
+  changedAt      DateTime               @default(now())
+  reason         String?
+  subscription   MembershipSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("membership_histories")
+}
+
+model MembershipEligibility {
+  id           String   @id @default(uuid())
+  userId       String
+  eligible     Boolean  @default(false)
+  reason       String?
+  calculatedAt DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("membership_eligibilities")
+}
+
+model Order {
+  id            String               @id @default(uuid())
+  orderNumber   String               @unique
+  userId        String
+  status        String               @default("DRAFT")
+  totalAmount   Float
+  currency      String               @default("AED")
+  reservedUntil DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  invoice       Invoice?
+  items         OrderItem[]
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  PaymentTransaction[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  planId    String
+  name      String
+  quantity  Int      @default(1)
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model PaymentTransaction {
+  id            String   @id @default(uuid())
+  orderId       String
+  transactionId String   @unique
+  provider      String
+  status        String   @default("INITIATED")
+  amount        Float
+  currency      String   @default("AED")
+  rawPayload    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds       Refund[]
+
+  @@map("payment_transactions")
+}
+
+model Invoice {
+  id            String    @id @default(uuid())
+  orderId       String    @unique
+  userId        String
+  invoiceNumber String    @unique
+  founderId     String
+  amount        Float
+  currency      String    @default("AED")
+  status        String    @default("UNPAID")
+  pdfUrl        String?
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model Refund {
+  id            String             @id @default(uuid())
+  transactionId String
+  amount        Float
+  status        String             @default("PENDING")
+  reason        String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  transaction   PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("refunds")
+}
+
+model FounderWorkspace {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("founder_workspaces")
+}
+
+model ProfileCompletion {
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  progressPercentage Float     @default(0.0)
+  missingFields      String[]
+  completedAt        DateTime?
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_completions")
+}
+
+model UserPreference {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  preferredLanguage  String   @default("English")
+  emailNotifications Boolean  @default(true)
+  preferredTheme     String   @default("dark")
+  preferredJobLoc    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model DashboardWidget {
+  id                 String   @id @default(uuid())
+  code               String   @unique
+  title              String
+  icon               String
+  visibility         Boolean  @default(true)
+  order              Int      @default(0)
+  module             String   @default("core")
+  requiredMembership String?
+  featureFlag        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("dashboard_widgets")
+}
+
+model ActivityFeed {
+  id          String   @id @default(uuid())
+  userId      String
+  actionType  String
+  description String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_feeds")
+}
+
+model Campaign {
+  id                     String                 @id @default(uuid())
+  code                   String                 @unique
+  name                   String
+  type                   String
+  status                 String                 @default("DRAFT")
+  maxEntries             Int?
+  referralLimit          Int?
+  startAt                DateTime?
+  endAt                  DateTime?
+  featureFlag            String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  campaignAudits         CampaignAudit[]
+  participants           CampaignParticipant[]
+  rules                  CampaignRule[]
+  giveawayEligibilities  GiveawayEligibility[]
+  namingChallengeEntries NamingChallengeEntry[]
+
+  @@map("campaigns")
+}
+
+model CampaignRule {
+  id         String   @id @default(uuid())
+  campaignId String
+  ruleKey    String
+  ruleValue  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, ruleKey])
+  @@map("campaign_rules")
+}
+
+model CampaignParticipant {
+  id           String   @id @default(uuid())
+  campaignId   String
+  userId       String
+  registeredAt DateTime @default(now())
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@map("campaign_participants")
+}
+
+model Referral {
+  id         String           @id @default(uuid())
+  referrerId String
+  refereeId  String
+  status     String           @default("PENDING")
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  rewards    ReferralReward[]
+  referee    User             @relation("RefereeRelation", fields: [refereeId], references: [id], onDelete: Cascade)
+  referrer   User             @relation("ReferrerRelation", fields: [referrerId], references: [id], onDelete: Cascade)
+
+  @@unique([referrerId, refereeId])
+  @@map("referrals")
+}
+
+model ReferralReward {
+  id         String   @id @default(uuid())
+  referralId String
+  amount     Float
+  currency   String   @default("AED")
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  referral   Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  @@map("referral_rewards")
+}
+
+model NamingChallengeEntry {
+  id           String   @id @default(uuid())
+  campaignId   String
+  userId       String
+  proposedName String
+  explanation  String
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@map("naming_challenge_entries")
+}
+
+model GiveawayEligibility {
+  id           String   @id @default(uuid())
+  campaignId   String
+  userId       String
+  eligible     Boolean  @default(false)
+  reason       String?
+  calculatedAt DateTime @default(now())
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@map("giveaway_eligibilities")
+}
+
+model CampaignAudit {
+  id          String   @id @default(uuid())
+  campaignId  String
+  userId      String
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_audits")
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("verification_tokens")
+}
+
+model UserSession {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  deviceName String?
+  browser    String?
+  os         String?
+  ipAddress  String?
+  userAgent  String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model LoginAttempt {
+  id          String   @id @default(uuid())
+  userId      String?
+  email       String
+  status      String
+  ipAddress   String?
+  userAgent   String?
+  attemptedAt DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("login_attempts")
+}
+
+model PasswordHistory {
+  id           String   @id @default(uuid())
+  userId       String
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_histories")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  userAgent String?
+  details   String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Candidate {
+  id                String                   @id @default(uuid())
+  userId            String                   @unique
+  headline          String?
+  careerSummary     String?
+  currentLocation   String?
+  preferredLocation String?
+  resumeUrl         String?
+  status            String                   @default("ACTIVE")
+  visibility        String                   @default("PUBLIC")
+  skills            String[]
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  certifications    CandidateCertification[]
+  educations        CandidateEducation[]
+  experiences       CandidateExperience[]
+  portfolios        CandidatePortfolio[]
+  preference        CandidatePreference?
+  user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications      JobApplication[]
+  savedJobs         SavedJob[]
+
+  @@map("candidates")
+}
+
+model CandidatePreference {
+  id                String    @id @default(uuid())
+  candidateId       String    @unique
+  employmentType    String?
+  salaryExpectation Float?
+  currency          String    @default("AED")
+  noticePeriodDays  Int?
+  remotePreference  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  candidate         Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("candidate_preferences")
+}
+
+model CandidateExperience {
+  id          String    @id @default(uuid())
+  candidateId String
+  title       String
+  companyName String
+  location    String?
+  startDate   DateTime?
+  endDate     DateTime?
+  isCurrent   Boolean   @default(false)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("candidate_experiences")
+}
+
+model CandidateEducation {
+  id           String    @id @default(uuid())
+  candidateId  String
+  institution  String
+  degree       String
+  fieldOfStudy String?
+  startDate    DateTime
+  endDate      DateTime?
+  grade        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("candidate_educations")
+}
+
+model CandidateCertification {
+  id                  String    @id @default(uuid())
+  candidateId         String
+  name                String
+  issuingOrganization String
+  issueDate           DateTime?
+  expirationDate      DateTime?
+  credentialId        String?
+  credentialUrl       String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  candidate           Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("candidate_certifications")
+}
+
+model CandidatePortfolio {
+  id          String    @id @default(uuid())
+  candidateId String
+  title       String
+  description String?
+  projectUrl  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("candidate_portfolios")
+}
+
+model Employer {
+  id            String               @id @default(uuid())
+  userId        String               @unique
+  title         String?
+  department    String?
+  businessEmail String?
+  contactNumber String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs          Job[]
+  memberships   OrganizationMember[]
+
+  @@map("employers")
+}
+
+model Organization {
+  id           String                    @id @default(uuid())
+  name         String                    @unique
+  industry     String?
+  companySize  String?
+  website      String?
+  headquarters String?
+  countries    String[]
+  logoUrl      String?
+  isVerified   Boolean                   @default(false)
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  customers    Customer[]
+  jobs         Job[]
+  members      OrganizationMember[]
+  verification OrganizationVerification?
+
+  @@map("organizations")
+}
+
+model OrganizationVerification {
+  id              String                 @id @default(uuid())
+  organizationId  String                 @unique
+  status          String                 @default("NOT_SUBMITTED")
+  level           String                 @default("BASIC")
+  submittedAt     DateTime?
+  updatedAt       DateTime               @updatedAt
+  complianceNotes ComplianceNote[]
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documents       VerificationDocument[]
+  reviews         VerificationReview[]
+
+  @@map("organization_verifications")
+}
+
+model VerificationDocument {
+  id             String                   @id @default(uuid())
+  verificationId String
+  documentType   String
+  secureUrl      String
+  createdAt      DateTime                 @default(now())
+  verification   OrganizationVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@map("verification_documents")
+}
+
+model VerificationReview {
+  id             String                   @id @default(uuid())
+  verificationId String
+  reviewerId     String
+  action         String
+  notes          String?
+  reviewedAt     DateTime                 @default(now())
+  verification   OrganizationVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@map("verification_reviews")
+}
+
+model ComplianceNote {
+  id             String                   @id @default(uuid())
+  verificationId String
+  authorId       String
+  content        String
+  createdAt      DateTime                 @default(now())
+  verification   OrganizationVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@map("compliance_notes")
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid())
+  organizationId String
+  employerId     String
+  role           String       @default("RECRUITER")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  employer       Employer     @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, employerId])
+  @@map("organization_members")
+}
+
+model Job {
+  id              String    @id @default(uuid())
+  title           String
+  description     String
+  employmentType  String
+  salaryMin       Float?
+  salaryMax       Float?
+  salaryCurrency  String    @default("AED")
+  salaryVisible   Boolean   @default(true)
+  experienceYears Int       @default(0)
+  experienceLevel String    @default("MID")
+  department      String?
+  industry        String?
+  status          String    @default("DRAFT")
+  visibility      String    @default("PUBLIC")
+  employerId      String
+  organizationId  String
+  categoryId      String?
+  expiresAt       DateTime?
+
+  deletedAt    DateTime?
+  deletedById  String?
+  deleteReason String?
+
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  applications  JobApplication[]
+  attachments   JobAttachment[]
+  benefits      JobBenefit[]
+  locations     JobLocation[]
+  skills        JobSkill[]
+  statusHistory JobStatusHistory[]
+  category      JobCategory?       @relation(fields: [categoryId], references: [id])
+  employer      Employer           @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  organization  Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  savedBy       SavedJob[]
+
+  @@index([status])
+  @@index([employerId])
+  @@index([organizationId])
+  @@index([expiresAt])
+  @@map("jobs")
+}
+
+enum JobStatus {
+  DRAFT
+
+  PENDING_APPROVAL
+
+  PUBLISHED
+
+  PAUSED
+
+  CLOSED
+
+  EXPIRED
+
+  DELETED
+}
+
+enum JobVisibility {
+  PUBLIC
+
+  PRIVATE
+}
+
+model JobLocation {
+  id            String   @id @default(uuid())
+  jobId         String
+  country       String
+  state         String?
+  city          String?
+  workplaceType String   @default("ONSITE")
+  createdAt     DateTime @default(now())
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_locations")
+}
+
+model JobCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  jobs      Job[]
+
+  @@map("job_categories")
+}
+
+model JobSkill {
+  id        String   @id @default(uuid())
+  jobId     String
+  skillName String
+  createdAt DateTime @default(now())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_skills")
+}
+
+model JobBenefit {
+  id          String   @id @default(uuid())
+  jobId       String
+  benefitName String
+  createdAt   DateTime @default(now())
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_benefits")
+}
+
+model JobAttachment {
+  id        String   @id @default(uuid())
+  jobId     String
+  fileName  String
+  fileUrl   String
+  createdAt DateTime @default(now())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_attachments")
+}
+
+model JobStatusHistory {
+  id          String   @id @default(uuid())
+  jobId       String
+  oldStatus   String
+  newStatus   String
+  changedById String?
+  notes       String?
+  changedAt   DateTime @default(now())
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_status_histories")
+}
+
+model JobApplication {
+  id             String                     @id @default(uuid())
+  candidateId    String
+  jobId          String
+  status         String                     @default("APPLIED")
+  appliedAt      DateTime                   @default(now())
+  notes          String?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  statusHistory  ApplicationStatusHistory[]
+  employerNotes  EmployerNote[]
+  hiringDecision HiringDecision?
+  candidate      Candidate                  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job            Job                        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobId])
+  @@map("job_applications")
+}
+
+model ApplicationStatusHistory {
+  id            String         @id @default(uuid())
+  applicationId String
+  oldStatus     String
+  newStatus     String
+  changedById   String?
+  notes         String?
+  changedAt     DateTime       @default(now())
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("application_status_histories")
+}
+
+model EmployerNote {
+  id            String         @id @default(uuid())
+  applicationId String
+  authorId      String
+  content       String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("employer_notes")
+}
+
+model HiringDecision {
+  id            String         @id @default(uuid())
+  applicationId String         @unique
+  decision      String
+  offeredSalary Float?
+  currency      String         @default("AED")
+  joinedAt      DateTime?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("hiring_decisions")
+}
+
+model SavedSearch {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  criteria  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("saved_searches")
+}
+
+model SearchHistory {
+  id         String   @id @default(uuid())
+  userId     String?
+  queryText  String?
+  filters    Json?
+  searchedAt DateTime @default(now())
+
+  @@map("search_histories")
+}
+
+model SearchPreference {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  preferredTitle String?
+  preferredLoc   String?
+  preferredType  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("search_preferences")
+}
+
+model JobView {
+  id       String   @id @default(uuid())
+  jobId    String
+  userId   String?
+  viewedAt DateTime @default(now())
+
+  @@map("job_views")
+}
+
+model Lead {
+  id          String   @id @default(uuid())
+  fullName    String
+  email       String   @unique
+  phone       String?
+  companyName String?
+  status      String   @default("NEW")
+  source      String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("crm_leads")
+}
+
+model Customer {
+  id             String        @id @default(uuid())
+  organizationId String?
+  userId         String?       @unique
+  fullName       String
+  email          String        @unique
+  phone          String?
+  status         String        @default("ACTIVE")
+  lifetimeValue  Float         @default(0.0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User?         @relation(fields: [userId], references: [id])
+
+  @@map("crm_customers")
+}
+
+model SavedJob {
+  id          String    @id @default(uuid())
+  candidateId String
+  jobId       String
+  savedAt     DateTime  @default(now())
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobId])
+  @@map("saved_jobs")
+}
+
+model OtpVerification {
+  id String @id @default(uuid())
+
+  identifier String
+
+  type String
+
+  purpose String @default("LOGIN")
+
+  otp String
+
+  attempts Int @default(0)
+
+  expiresAt DateTime
+
+  verified Boolean @default(false)
+
+  verifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([identifier, type, purpose])
+}
+
+model UserIdentity {
+  id String @id @default(uuid())
+
+  userId String
+
+  provider   String
+  providerId String
+
+  email String?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("user_identities")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  role      Role
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+enum Role {
+  CANDIDATE
+  EMPLOYER
+  ADMIN
+  FOUNDER
+}
+
+model FounderSequence {
+  id        Int @id @default(1)
+  year      Int
+  lastValue Int @default(0)
+}
