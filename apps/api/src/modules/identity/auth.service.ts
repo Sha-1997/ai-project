@@ -1827,7 +1827,7 @@ export class AuthService {
     return {
       success: true,
 
-      message: 'OTP sent successfully',
+      message: 'OTP sent successfullyyyyyyyyy',
 
       resendAvailableAt,
 
